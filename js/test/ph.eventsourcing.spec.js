@@ -9,9 +9,46 @@ describe("Event Sourcing", function () {
 
     beforeEach(module('ph.eventSourcing'));
 
+    var Dummy, dummy;
+    beforeEach(inject(function createDummyDomainObject(Aggregate) {
+        Dummy = function Dummy(id) {
+            this.constructor();
+            this.event1Count = 0;
+            this.event2Count = 0;
+
+            if (id) {
+                this.apply('DummyCreated', id);
+            }
+        };
+
+        Dummy.prototype = new Aggregate();
+        Dummy.prototype.eventHandlers = {
+            'DummyCreated': function (id) {
+                this.id = id;
+            },
+            'Event1': function () {
+                this.event1Count++;
+            },
+            'Event2': function () {
+                this.event2Count++;
+            }
+        };
+
+        Dummy.prototype.command1 = function () {
+            this.apply('Event1', {});
+        };
+        Dummy.prototype.command2 = function () {
+            this.apply('Event2', {});
+        };
+
+        dummy = new Dummy('ID');
+        spyOn(dummy.eventHandlers, 'Event1').and.callThrough();
+        spyOn(dummy.eventHandlers, 'Event2').and.callThrough();
+        spyOn(dummy, 'getUnsavedEvents').and.callThrough();
+    }));
+
+
     describe("Event Store", function () {
-
-
         it("Should initially be empty", inject(function (EventStore) {
             expect(EventStore.loadEvents('ID')).toEqual([]);
         }));
@@ -46,50 +83,26 @@ describe("Event Sourcing", function () {
 
     });
 
+    describe("DummyAggregate", function () {
+        it("Should count events", function () {
+            dummy.command1();
+            dummy.command2();
+            dummy.command2();
+
+            expect(dummy.event1Count).toBe(1);
+            expect(dummy.event2Count).toBe(2);
+        });
+
+        it("Should be independent", function () {
+            var a = new Dummy('A'),
+                b = new Dummy('B');
+
+            expect(a.getUnsavedEvents()).toEqual([event('DummyCreated', 'A')]);
+            expect(b.getUnsavedEvents()).toEqual([event('DummyCreated', 'B')]);
+        });
+    })
 
     describe("Aggregate", function () {
-        var Dummy, dummy;
-
-        beforeEach(inject(function createDummyDomainObject(Aggregate) {
-            Dummy = function Dummy() {
-                this.event1Count = 0;
-                this.event2Count = 0;
-            };
-
-            Dummy.prototype = new Aggregate();
-            Dummy.prototype.eventHandlers = {
-                'Event1': function () {
-                    this.event1Count++;
-                },
-                'Event2': function () {
-                    this.event2Count++;
-                }
-            };
-
-            Dummy.prototype.command1 = function () {
-                this.apply('Event1', {});
-            };
-            Dummy.prototype.command2 = function () {
-                this.apply('Event2', {});
-            };
-
-            dummy = new Dummy();
-            spyOn(dummy.eventHandlers, 'Event1').and.callThrough();
-            spyOn(dummy.eventHandlers, 'Event2').and.callThrough();
-        }));
-
-        describe("DummyAggregate", function () {
-            it("Should count events", function () {
-                var agg = new Dummy();
-                agg.command1();
-                agg.command2();
-                agg.command2();
-
-                expect(agg.event1Count).toBe(1);
-                expect(agg.event2Count).toBe(2);
-            });
-        })
-
         it("Should handle event dispatch", inject(function () {
             dummy.applyEvent({type: 'Event1', payload: {}});
             dummy.applyEvent({type: 'Event2', payload: "Payload"});
@@ -107,7 +120,7 @@ describe("Event Sourcing", function () {
         });
 
         it("Should not initially have any unsaved events", function () {
-            expect(dummy.getUnsavedEvents()).toEqual([]);
+            expect(dummy.getUnsavedEvents()).toEqual([event('DummyCreated', 'ID')]);
         })
 
         it("Should store applied events", function () {
@@ -115,8 +128,90 @@ describe("Event Sourcing", function () {
             dummy.command2();
 
             expect(dummy.getUnsavedEvents()).toEqual([
+                event('DummyCreated', 'ID'),
                 event('Event1', {}), event('Event2', {})
             ]);
         });
-    })
+
+        it("Should initialize from events", function () {
+            dummy = new Dummy();
+            dummy.initialize([
+                event('DummyCreated', 'ID'),
+                event('Event1', {}), event('Event2', {}), event('Event2', {})
+            ]);
+
+            expect(dummy.event1Count).toBe(1);
+            expect(dummy.event2Count).toBe(2);
+
+            expect(dummy.getUnsavedEvents()).toEqual([]);
+        })
+    });
+
+    describe("AggregateRepository", function () {
+
+        var DummyRepo, EventStore;
+
+        beforeEach(inject(function (_EventStore_, AggregateRepositoryFactory) {
+            EventStore = _EventStore_;
+            DummyRepo = AggregateRepositoryFactory({
+                eventStore: EventStore,
+                factory: function () {
+                    return new Dummy();
+                }
+            });
+
+            spyOn(EventStore, "storeEvent").and.callThrough();
+        }));
+
+        it("Should persist empty objects", function () {
+            DummyRepo.add(dummy);
+
+            expect(dummy.getUnsavedEvents).toHaveBeenCalled();
+            expect(EventStore.storeEvent).toHaveBeenCalledWith(
+                'ID', 'DummyCreated', 'ID'
+            );
+        });
+
+        it("Should persist new objects", function () {
+            DummyRepo.add(dummy);
+            expect(dummy.getUnsavedEvents).toHaveBeenCalled();
+            expect(EventStore.storeEvent.calls.count()).toBe(1);
+        });
+
+        it("Should load aggregates", function () {
+            dummy.command1();
+            dummy.command2();
+
+            DummyRepo.add(dummy);
+
+            var copy = DummyRepo.load("ID");
+
+            expect(copy.event1Count).toEqual(dummy.event1Count);
+        });
+
+        it("Should not allow aggregates without an ID", function () {
+            var noId = new Dummy();
+
+            expect(function () {
+                DummyRepo.add(noId)
+            }).toThrow();
+        });
+
+        it("Should not allow duplicate IDs", function () {
+            var one = new Dummy("ID1");
+            one.command1();
+
+            DummyRepo.add(one);
+
+            var dup = new Dummy("ID1");
+
+            expect(function () {
+                DummyRepo.add(one)
+            }).toThrow();
+            expect(function () {
+                DummyRepo.add(dup)
+            }).toThrow();
+
+        });
+    });
 });
