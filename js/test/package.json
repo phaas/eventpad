@@ -1,0 +1,8 @@
+{
+    "devDependencies": {
+        "karma": "~0.12",
+        "jasmine": "~2.0.1",
+        "karma-jasmine": "~0.2.0"
+
+    }
+}

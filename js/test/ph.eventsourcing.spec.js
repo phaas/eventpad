@@ -45,6 +45,7 @@ describe("Event Sourcing", function () {
         spyOn(dummy.eventHandlers, 'Event1').and.callThrough();
         spyOn(dummy.eventHandlers, 'Event2').and.callThrough();
         spyOn(dummy, 'getUnsavedEvents').and.callThrough();
+        spyOn(dummy, 'clearUnsavedEvents').and.callThrough();
     }));
 
 
@@ -121,7 +122,7 @@ describe("Event Sourcing", function () {
 
         it("Should not initially have any unsaved events", function () {
             expect(dummy.getUnsavedEvents()).toEqual([event('DummyCreated', 'ID')]);
-        })
+        });
 
         it("Should store applied events", function () {
             dummy.command1();
@@ -144,17 +145,38 @@ describe("Event Sourcing", function () {
             expect(dummy.event2Count).toBe(2);
 
             expect(dummy.getUnsavedEvents()).toEqual([]);
-        })
+        });
+
+        it("Should validate applied events", function () {
+            expect(function () {
+                dummy.apply();
+            }).toThrow();
+            expect(function () {
+                dummy.apply("Type");
+            }).toThrow();
+        });
+
+        it("Should clear unsaved events after save", function () {
+            dummy.command1();
+
+            expect(dummy.getUnsavedEvents()).not.toEqual([]);
+
+            dummy.clearUnsavedEvents();
+
+            expect(dummy.getUnsavedEvents()).toEqual([]);
+        });
     });
 
     describe("AggregateRepository", function () {
 
-        var DummyRepo, EventStore;
+        var DummyRepo, EventStore, EventBus;
 
-        beforeEach(inject(function (_EventStore_, AggregateRepositoryFactory) {
+        beforeEach(inject(function (_EventStore_, _EventBus_, AggregateRepositoryFactory) {
             EventStore = _EventStore_;
+            EventBus = jasmine.createSpyObj('mockEventBus', ['publish']);
             DummyRepo = AggregateRepositoryFactory({
                 eventStore: EventStore,
+                eventBus: EventBus,
                 factory: function () {
                     return new Dummy();
                 }
@@ -170,6 +192,8 @@ describe("Event Sourcing", function () {
             expect(EventStore.storeEvent).toHaveBeenCalledWith(
                 'ID', 'DummyCreated', 'ID'
             );
+
+            expect(dummy.getUnsavedEvents()).toEqual([]);
         });
 
         it("Should persist new objects", function () {
@@ -211,7 +235,91 @@ describe("Event Sourcing", function () {
             expect(function () {
                 DummyRepo.add(dup)
             }).toThrow();
+        });
 
+        it("Should save aggregate events", function () {
+            DummyRepo.add(dummy);
+
+            var copy = DummyRepo.load("ID");
+            expect(copy.event1Count).toEqual(dummy.event1Count);
+
+            copy.command1();
+            DummyRepo.save(copy);
+
+            var copy2 = DummyRepo.load("ID");
+            expect(copy.event1Count).toEqual(copy2.event1Count);
+        });
+
+        it("Should clear the aggregates unsaved events", function () {
+            DummyRepo.add(dummy);
+
+            expect(dummy.getUnsavedEvents()).toEqual([]);
+
+            dummy.command1();
+            expect(dummy.getUnsavedEvents()).not.toEqual([]);
+            DummyRepo.save(dummy);
+            expect(dummy.getUnsavedEvents()).toEqual([]);
+
+            dummy.command2();
+            expect(dummy.getUnsavedEvents()).not.toEqual([]);
+            DummyRepo.save(dummy);
+            expect(dummy.getUnsavedEvents()).toEqual([]);
+        });
+
+        it("Should publish events", function () {
+            var one = new Dummy("ID1");
+            DummyRepo.add(one);
+
+            expect(EventBus.publish).toHaveBeenCalledWith('DummyCreated', 'ID1');
         });
     });
-});
+
+    describe("Event Bus", function () {
+
+        var bus, handlers;
+
+        beforeEach(inject(function (EventBus) {
+            bus = EventBus;
+            handlers = {
+                one: function () {
+                },
+                two: function () {
+                }
+            };
+
+            spyOn(handlers, "one").and.callThrough();
+            spyOn(handlers, "two").and.callThrough();
+        }));
+
+        it("Should publish events to listeners", function () {
+
+            bus.subscribe('EventOne', handlers.one);
+            bus.subscribe('EventTwo', handlers.two);
+
+            bus.publish(event('EventOne', 1));
+
+
+            expect(handlers.one).toHaveBeenCalledWith(1);
+            expect(handlers.two).not.toHaveBeenCalled();
+
+            handlers.one.calls.reset();
+
+            bus.publish(event('EventTwo', 2));
+
+            expect(handlers.one).not.toHaveBeenCalled();
+            expect(handlers.two).toHaveBeenCalledWith(2);
+        });
+
+        it("Should allow multiple subscribers", function () {
+            bus.subscribe('EventOne', handlers.one);
+            bus.subscribe('EventOne', handlers.two);
+
+            bus.publish(event('EventOne', 1));
+
+            expect(handlers.one).toHaveBeenCalledWith(1);
+            expect(handlers.two).toHaveBeenCalledWith(1);
+        });
+
+    });
+})
+;
