@@ -1,5 +1,8 @@
-<h1>Editor {{editor.id}} <small>(<a href="#/events/{{editor.id}}">events</a>)</small></h1>
-<h2>File: {{editor.fileName}}</h2>
+<h1>Editor {{editor.id}}
+    <small>(<a href="#/events/{{editor.id}}">events</a>)</small>
+</h1>
+<div><label>File:</label> {{editor.fileName}}</div>
+<div><label>Content Length:</label> {{editor.contentLength}}</div>
 
 <div style="border: solid black 1px;">
     <pre>{{editor.content}}</pre>
@@ -7,6 +10,14 @@
 
 
 <div style="padding: 10px 5px;">
+    Insert position: <input type="text" ng-model="position" placeholder="leave blank for end"/>
+</div>
+<div style="padding: 10px 5px;">
     <textarea ng-model="line" rows="3"></textarea>
-    <button ng-click="append(line); line=''">Append</button>
+    <button ng-click="append(line, position); line=''">Append</button>
+</div>
+<div style="padding: 10px 5px;">
+    <button ng-click="append(' ', position);">Space</button>
+    <button ng-click="append('\n', position);">Enter</button>
+    <button ng-click="append('\t', position);">Tab</button>
 </div>

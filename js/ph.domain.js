@@ -8,9 +8,10 @@
             this.id = id;
             this.fileName = fileName;
         },
-        TextAppended: function (id, text) {
+        TextAppended: function (id, text, position) {
             this.id = id;
             this.text = text;
+            this.position = position;
         }
     };
     module.constant('Events', Events);
@@ -19,6 +20,7 @@
     module.provider('Editor', ['Aggregate', function (Aggregate) {
         var Editor = function (id, fileName) {
             this.constructor();
+            this.contentLength = 0;
             if (id && fileName) {
                 this.apply('EditorCreated', new Events.EditorCreated(id, fileName));
             }
@@ -30,16 +32,19 @@
                 this.id = event.id;
                 this.fileName = event.fileName;
             },
-            'TextAppended': function () {
-                this.event1Count++;
+            'TextAppended': function (event) {
+                this.contentLength += event.text.length;
             },
             'Event2': function () {
                 this.event2Count++;
             }
         };
 
-        Editor.prototype.append = function (text) {
-            this.apply('TextAppended', new Events.TextAppended(this.id, text));
+        Editor.prototype.append = function (text, position) {
+            if (position > this.contentLength) {
+                throw "Can not insert text at position " + position + ", content length is " + this.contentLength;
+            }
+            this.apply('TextAppended', new Events.TextAppended(this.id, text, position));
         };
 
         return {
@@ -61,9 +66,10 @@
             });
 
             data.sort(function (a, b) {
-                if (a.fileName < b.fileName) {
+                var aa = a.fileName.toLowerCase(), bb = b.fileName.toLowerCase();
+                if (aa < bb) {
                     return -1;
-                } else if (a.fileName == b.fileName) {
+                } else if (aa == bb) {
                     return 0;
                 } else {
                     return 1;
@@ -87,11 +93,24 @@
             data[event.id] = {
                 id: event.id,
                 fileName: event.fileName,
-                content: ''
+                content: '',
+                contentLength: 0
             };
         });
-        EventBus.subscribe('TextAppended', function(event){
-           data[event.id].content += event.text;
+        EventBus.subscribe('TextAppended', function (event) {
+            var view = data[event.id];
+
+            if (event.position !== undefined) {
+                view.content =
+                    view.content.slice(0, event.position)
+                        + event.text
+                        + view.content.slice(event.position, view.content.length);
+
+            } else {
+                view.content += event.text;
+            }
+
+            view.contentLength += event.text.length;
         });
     };
 

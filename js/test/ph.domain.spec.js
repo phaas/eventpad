@@ -50,6 +50,30 @@ describe('Domain', function () {
             ]);
         });
 
+        it('Should append text at the specified position', function () {
+            editor.append('0123456789');
+            editor.append('X', 9);
+            editor.append('X', 8);
+            editor.append('X', 1);
+            editor.append('X', 0);
+
+
+            expect(editor.getUnsavedEvents()).toEqual([
+                event('TextAppended', new Events.TextAppended('ID', '0123456789')),
+                event('TextAppended', new Events.TextAppended('ID', 'X', 9)),
+                event('TextAppended', new Events.TextAppended('ID', 'X', 8)),
+                event('TextAppended', new Events.TextAppended('ID', 'X', 1)),
+                event('TextAppended', new Events.TextAppended('ID', 'X', 0))
+            ]);
+        });
+
+
+        it('Should verify the position of appended text', function () {
+            expect(function () {
+                editor.append('Q', 10);
+            }).toThrow("Can not insert text at position 10, content length is 0");
+
+        });
     });
 
     describe('Id Generator', function () {
@@ -87,10 +111,14 @@ describe('Domain', function () {
 
         it('Should sort items alphabetically by fileName', inject(function (App, Editor) {
             App.repository.add(new App.Editor('ID1', 'zzz.txt'));
+            App.repository.add(new App.Editor('ID3', 'B.txt'));
             App.repository.add(new App.Editor('ID2', 'aaa.txt'));
+            App.repository.add(new App.Editor('ID4', 'C.txt'));
 
             expect(App.editorList.list()).toEqual([
                 {id: 'ID2', fileName: 'aaa.txt'},
+                {id: 'ID3', fileName: 'B.txt'},
+                {id: 'ID4', fileName: 'C.txt'},
                 {id: 'ID1', fileName: 'zzz.txt'}
             ]);
         }));
@@ -135,7 +163,7 @@ describe('Domain', function () {
             view = new EditorContentView(eventBus);
         }));
 
-        it('Shouold not have a view for invalid IDs', function () {
+        it('Should not have a view for invalid IDs', function () {
             expect(view.get('ID')).toBeUndefined();
         });
 
@@ -145,18 +173,43 @@ describe('Domain', function () {
             expect(view.get('ID')).toEqual({
                 id: 'ID',
                 fileName: 'fileName',
-                content: ''
+                content: '',
+                contentLength: 0
             });
         });
 
-        it('Shouold append text', function () {
+        it('Should append text', function () {
             eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID', 'fileName')));
             eventBus.publish(event('TextAppended', new Events.TextAppended('ID', 'Content')));
 
             expect(view.get('ID')).toEqual({
                 id: 'ID',
                 fileName: 'fileName',
-                content: 'Content'
+                content: 'Content',
+                contentLength: 7
+            });
+        });
+
+        it('Should append text at the specified position', function () {
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID', 'fileName')));
+            eventBus.publish(event('TextAppended', new Events.TextAppended('ID', '0123456789')));
+
+            expect(view.get('ID')).toEqual({
+                id: 'ID',
+                fileName: 'fileName',
+                content: '0123456789',
+                contentLength: 10
+            });
+
+            eventBus.publish(event('TextAppended', new Events.TextAppended('ID', 'X', 10)));
+            eventBus.publish(event('TextAppended', new Events.TextAppended('ID', 'X', 5)));
+            eventBus.publish(event('TextAppended', new Events.TextAppended('ID', 'X', 0)));
+
+            expect(view.get('ID')).toEqual({
+                id: 'ID',
+                fileName: 'fileName',
+                content: 'X01234X56789X',
+                contentLength: 13
             });
         });
 

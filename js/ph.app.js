@@ -36,8 +36,8 @@
     module.controller('EditorCtrl', ['$scope', 'App', '$routeParams', function ($scope, App, $routeParams) {
         $scope.id = $routeParams.id;
         $scope.editor = App.editorContent.get($scope.id);
-        $scope.append = function (text) {
-            App.gateway.append($scope.id, text);
+        $scope.append = function (text, position) {
+            App.gateway.append($scope.id, text, position);
         };
     }]);
 
