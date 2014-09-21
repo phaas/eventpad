@@ -89,6 +89,16 @@ describe('Domain', function () {
                 event('TextDeleted', new Events.TextDeleted('ID', 0, 7, '0123489'))
             ]);
         });
+        it('Should delete text 2', function () {
+            editor.append('012345678901234567890123456789');
+            editor.clearUnsavedEvents();
+
+            editor.deleteText(10, 12);
+
+            expect(editor.getUnsavedEvents()).toEqual([
+                event('TextDeleted', new Events.TextDeleted('ID', 10, 12, '012345678901'))
+            ]);
+        });
 
         it('Should verify the position of deleted text', function () {
             expect(function () {

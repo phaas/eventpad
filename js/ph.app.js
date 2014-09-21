@@ -37,17 +37,17 @@
         $scope.id = $routeParams.id;
         $scope.editor = App.editorContent.get($scope.id);
         $scope.append = function (text, position) {
-            App.gateway.append($scope.id, text, position);
+            App.gateway.append($scope.id, text, +position);
         };
 
         $scope.deleteText = function (position, length) {
-            App.gateway.deleteText($scope.id, position, length);
+            App.gateway.deleteText($scope.id, +position, +length);
         };
 
         $scope.benchmarkAppend = function (text, position, count) {
             var start = new Date();
             for (var i = 0; i < count; i++) {
-                App.gateway.append($scope.id, text, position);
+                App.gateway.append($scope.id, text, +position);
             }
             var end = new Date();
             console.log("Appended", text.length, "characters", count, "times in", end.valueOf() - start.valueOf(), "ms")
