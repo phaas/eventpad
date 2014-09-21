@@ -67,12 +67,54 @@ describe('Domain', function () {
             ]);
         });
 
-
         it('Should verify the position of appended text', function () {
             expect(function () {
                 editor.append('Q', 10);
             }).toThrow("Can not insert text at position 10, content length is 0");
+        });
 
+        it('Should delete text', function () {
+            editor.append('0123456789');
+            editor.clearUnsavedEvents();
+
+            editor.deleteText(5, 3);
+
+            expect(editor.getUnsavedEvents()).toEqual([
+                event('TextDeleted', new Events.TextDeleted('ID', 5, 3, '567'))
+            ]);
+
+            editor.deleteText(0, 7);
+            expect(editor.getUnsavedEvents()).toEqual([
+                event('TextDeleted', new Events.TextDeleted('ID', 5, 3, '567')),
+                event('TextDeleted', new Events.TextDeleted('ID', 0, 7, '0123489'))
+            ]);
+        });
+
+        it('Should verify the position of deleted text', function () {
+            expect(function () {
+                editor.deleteText(0, 1);
+            }).toThrow("Can not delete 1 characters at position 0, content is only 0 characters");
+
+            expect(function () {
+                editor.deleteText(-1, 0);
+            }).toThrow("Position must be >= 0");
+
+            expect(function () {
+                editor.deleteText(0, 0);
+            }).toThrow("Length must be > 0");
+
+            editor.append("0123456789");
+            editor.deleteText(0, 8);
+
+            expect(function () {
+                editor.deleteText(0, 3);
+            }).toThrow("Can not delete 3 characters at position 0, content is only 2 characters")
+
+            editor.deleteText(0, 2);
+
+            expect(function () {
+                editor.deleteText(0, 1);
+            }).toThrow("Can not delete 1 characters at position 0, content is only 0 characters")
         });
     });
 
@@ -151,6 +193,18 @@ describe('Domain', function () {
             expect(dummy.append).toHaveBeenCalledWith('Text to append');
             expect(repository.save).toHaveBeenCalledWith(dummy);
         });
+
+        it('Shouold handle delete commands', function () {
+            var dummy = jasmine.createSpyObj('Editor', ['deleteText']);
+
+            repository.load.and.returnValue(dummy);
+
+            gateway.deleteText('ID', 4, 2);
+
+            expect(repository.load).toHaveBeenCalledWith('ID');
+            expect(dummy.deleteText).toHaveBeenCalledWith(4, 2);
+            expect(repository.save).toHaveBeenCalledWith(dummy);
+        })
     });
 
 
@@ -213,5 +267,34 @@ describe('Domain', function () {
             });
         });
 
+        it('Should delete text', function () {
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID', 'fileName')));
+            eventBus.publish(event('TextAppended', new Events.TextAppended('ID', '0123456789')));
+
+            expect(view.get('ID')).toEqual({
+                id: 'ID',
+                fileName: 'fileName',
+                content: '0123456789',
+                contentLength: 10
+            });
+
+            eventBus.publish(event('TextDeleted', new Events.TextDeleted('ID', 0, 5, '01234')));
+
+            expect(view.get('ID')).toEqual({
+                id: 'ID',
+                fileName: 'fileName',
+                content: '56789',
+                contentLength: 5
+            });
+
+            eventBus.publish(event('TextDeleted', new Events.TextDeleted('ID', 0, 5, '56789')));
+
+            expect(view.get('ID')).toEqual({
+                id: 'ID',
+                fileName: 'fileName',
+                content: '',
+                contentLength: 0
+            });
+        });
     });
 });

@@ -1,20 +1,22 @@
 <h1>Events for {{id}}</h1>
 
-<table border="1">
 
+<table class="properties">
     <thead>
     <tr>
-        <th>Event</th>
-        <th>Payload</th>
+        <td></td>
+        <td>Event</td>
+        <td>Payload</td>
     </tr>
 
     </thead>
 
     <tbody>
+
     <tr ng-repeat="e in events">
-        <td>{{e.type}}</td>
-        <td>{{e.payload | json}}</td>
+        <th>{{$index}}</th>
+        <th>{{e.type}}</th>
+        <td><code>{{e.payload | json}}</code></td>
     </tr>
     </tbody>
-
 </table>

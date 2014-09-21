@@ -1,0 +1,96 @@
+/*
+ * http://paletton.com/#uid=60L0e1kxfgsMSl-E1jmtVbDnNaGkdwku8gpnaVmMfEhUjHgfk6vmcgJtg8+j9bAg6f8cJk4LqPcBrx6-nC78ks7hhs
+ */
+
+#toolbar {
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 3px 20px;
+    margin-bottom: 10px;
+    background-color: #41566A;
+    border-bottom: 2px solid #243C54;
+}
+
+#toolbar ul {
+    padding: 0;
+    margin: 0;
+}
+
+#toolbar li {
+    display: inline-block;
+    padding: 4px;
+    margin-right: 10px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    background-color: #647483;
+}
+
+#toolbar a, #toolbar a:visited {
+    color: #fff;
+    font-size: 14pt;
+    font-weight: bold;
+    font-family: "Helvetica Neue Light", "Lucida Grande", "Calibri", "Arial", sans-serif;
+    text-decoration: none;
+}
+
+body {
+    background-color: #834E00;
+    color: #E9C26F;
+}
+
+body, a {
+    color: #E9C26F;
+}
+
+h1 {
+    margin: 5px 0;
+}
+
+.page {
+    margin: 0 25px;
+}
+
+.error {
+    border: solid red 2px;
+    padding: 20px;
+    background-color: #c0480a;
+    font-weight: bold;
+    font-size: 16pt;
+}
+
+table.properties {
+    font-size: 10pt;
+    margin: 5px 0 5px 10px;
+}
+
+table.properties tr {
+    border-top: 1px solid #DBAF85;
+    border-bottom: 1px solid #DBAF85;
+}
+
+table.properties th {
+    text-align: right;
+    padding-right: 5px;
+}
+
+table.properties small {
+    display: inline-block;
+    margin-left: 20px;
+    color: #fff;
+    font-size: 8pt;
+}
+
+.editor {
+    color: black;
+    display: block;
+    overflow-x: auto;
+    padding: .5em;
+    background: #f0f0f0;
+    -webkit-text-size-adjust: none
+}
+
+.editor .title {
+    font-weight: bold;
+    text-decoration: underline;
+}

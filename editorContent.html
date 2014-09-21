@@ -1,23 +1,79 @@
-<h1>Editor {{editor.id}}
-    <small>(<a href="#/events/{{editor.id}}">events</a>)</small>
-</h1>
-<div><label>File:</label> {{editor.fileName}}</div>
-<div><label>Content Length:</label> {{editor.contentLength}}</div>
-
-<div style="border: solid black 1px;">
-    <pre>{{editor.content}}</pre>
+<div ng-if="!editor">
+    <div class="error">Error: The requested editor does not exist.</div>
 </div>
 
+<section ng-if="editor">
 
-<div style="padding: 10px 5px;">
-    Insert position: <input type="text" ng-model="position" placeholder="leave blank for end"/>
-</div>
-<div style="padding: 10px 5px;">
-    <textarea ng-model="line" rows="3"></textarea>
-    <button ng-click="append(line, position); line=''">Append</button>
-</div>
-<div style="padding: 10px 5px;">
-    <button ng-click="append(' ', position);">Space</button>
-    <button ng-click="append('\n', position);">Enter</button>
-    <button ng-click="append('\t', position);">Tab</button>
-</div>
+
+    <h1>{{editor.fileName}} ({{editor.id}})</h1>
+
+    <table class="properties">
+        <tr>
+            <th>Content Length:</th>
+            <td>{{editor.contentLength}}</td>
+        </tr>
+        <tr>
+            <th>Events:</th>
+            <td><a href="#/events/{{editor.id}}">show</a></td>
+        </tr>
+    </table>
+
+    <div class="editor"><span class="title">Content:</span>
+        <pre>{{editor.content}}</pre>
+    </div>
+
+    <div style="height: 15px;"></div>
+
+    <table class="properties">
+        <tr>
+            <th>Insert Position:</th>
+            <td><input type="text" ng-model="position"/>
+                <small>leave blank to insert at the end</small>
+            </td>
+        </tr>
+        <tr>
+            <th>Insert:</th>
+            <td><textarea ng-model="line" rows="3" cols="60"></textarea>
+
+                <div>
+
+                    <button ng-click="append(line, position); line=''">Append</button>
+                    <button ng-click="append(' ', position);">Space</button>
+                    <button ng-click="append('\n', position);">Enter</button>
+                    <button ng-click="append('\t', position);">Tab</button>
+
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th>Delete:</th>
+            <td>
+                <input type="text" ng-model="deleteLength" placeholder="length" size="5"/>
+                <label>characters starting from</label>
+                <input type="text" ng-model="deletePosition" placeholder="position" size="5"/>
+                <button ng-click="deleteText(deletePosition, deleteLength)">Delete</button>
+            </td>
+        </tr>
+        <tr>
+            <th></th>
+            <td>
+                <button ng-click="deleteText(0, editor.contentLength)">Delete all text</button>
+            </td>
+        </tr>
+        <tr>
+            <th>Benchmark:</th>
+            <td>
+                <div>
+                    <label>Append</label>
+                    <input type="text" ng-model="benchmarkText" placeholder="text" size="30"/>
+                    <label>at position</label>
+                    <input type="text" ng-model="benchmarkPosition" placeholder="position" size="3"/>
+                    <label>times</label>
+                    <input type="text" ng-model="benchmarkCount" placeholder="n" size="3"/>
+                    <button ng-click="benchmarkAppend(benchmarkText, benchmarkPosition, benchmarkCount)">Go</button>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+</section>

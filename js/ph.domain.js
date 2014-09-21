@@ -12,6 +12,12 @@
             this.id = id;
             this.text = text;
             this.position = position;
+        },
+        TextDeleted: function (id, position, length, text) {
+            this.id = id;
+            this.position = position;
+            this.length = length;
+            this.text = text;
         }
     };
     module.constant('Events', Events);
@@ -21,6 +27,7 @@
         var Editor = function (id, fileName) {
             this.constructor();
             this.contentLength = 0;
+            this.content = '';
             if (id && fileName) {
                 this.apply('EditorCreated', new Events.EditorCreated(id, fileName));
             }
@@ -33,10 +40,20 @@
                 this.fileName = event.fileName;
             },
             'TextAppended': function (event) {
+                if (event.position !== undefined) {
+                    var current = this.content;
+                    var prefix = current.slice(0, event.position);
+                    var suffix = current.slice(event.position, current.length);
+                    this.content = prefix + event.text + suffix;
+                } else {
+                    this.content += event.text;
+                }
                 this.contentLength += event.text.length;
             },
-            'Event2': function () {
-                this.event2Count++;
+            'TextDeleted': function (event) {
+                this.content = this.content.substring(0, event.position)
+                    + this.content.substring(event.position + event.length, this.content.length);
+                this.contentLength -= event.length;
             }
         };
 
@@ -45,6 +62,22 @@
                 throw "Can not insert text at position " + position + ", content length is " + this.contentLength;
             }
             this.apply('TextAppended', new Events.TextAppended(this.id, text, position));
+        };
+
+        Editor.prototype.deleteText = function (position, length) {
+            if (position < 0) {
+                throw "Position must be >= 0";
+            }
+            if (length <= 0) {
+                throw "Length must be > 0";
+            }
+            if (position + length > this.contentLength) {
+                throw "Can not delete " + length + " characters at position " + position +
+                    ", content is only " + this.contentLength + " characters";
+            }
+
+            var cut = this.content.substring(position, position + length);
+            this.apply('TextDeleted', new Events.TextDeleted(this.id, position, length, cut));
         };
 
         return {
@@ -81,7 +114,7 @@
 
     EditorListView.prototype.list = function () {
         return this.data;
-    }
+    };
 
     module.constant('EditorListView', EditorListView);
 
@@ -112,11 +145,20 @@
 
             view.contentLength += event.text.length;
         });
+        EventBus.subscribe('TextDeleted', function (event) {
+            var view = data[event.id];
+
+            var prefix = view.content.substring(0, event.position);
+            var suffix = view.content.substring(event.position + event.length);
+
+            view.content = prefix + suffix;
+            view.contentLength -= event.length;
+        });
     };
 
     EditorContentView.prototype.get = function (id) {
         return this.data[id];
-    }
+    };
 
     module.constant('EditorContentView', EditorContentView);
 
@@ -137,7 +179,7 @@
     /*
      * Generate command invocation functions for all aggregate commands.
      */
-    angular.forEach(['append'], function (cmd) {
+    angular.forEach(['append', 'deleteText'], function (cmd) {
         EditorCommandGateway.prototype[cmd] = function (id /*, args */) {
             var editor = this.repository.load(id);
             var result = editor[cmd].apply(editor, Array.prototype.slice.call(arguments, 1, arguments.length));
