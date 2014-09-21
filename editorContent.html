@@ -1,0 +1,12 @@
+<h1>Editor {{editor.id}} <small>(<a href="#/events/{{editor.id}}">events</a>)</small></h1>
+<h2>File: {{editor.fileName}}</h2>
+
+<div style="border: solid black 1px;">
+    <pre>{{editor.content}}</pre>
+</div>
+
+
+<div style="padding: 10px 5px;">
+    <textarea ng-model="line" rows="3"></textarea>
+    <button ng-click="append(line); line=''">Append</button>
+</div>

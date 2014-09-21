@@ -1,0 +1,12 @@
+<h1>Editor List</h1>
+
+<form ng-submit="createEditor(fileName); fileName = ''">
+    <input type="text" ng-model="fileName" placeholder="File Name"/>
+    <button type="submit">Create</button>
+</form>
+
+<ul>
+    <li ng-repeat="e in editorList()"><a href="#/editor/{{e.id}}">{{e.fileName}}</a>
+        (<a href="#/events/{{e.id}}">events</a>)
+    </li>
+</ul>

@@ -1,7 +1,7 @@
 (function (window, angular) {
-    "use strict";
+    'use strict';
 
-    var module = angular.module("ph.eventSourcing", []);
+    var module = angular.module('ph.eventSourcing', []);
 
     var EventBus = function () {
         this.handlers = {};
@@ -60,11 +60,11 @@
     };
 
     Aggregate.prototype.apply = function (type, payload) {
-        if (!type || (typeof(type) !== "string")) {
-            throw "Invalid event type: " + type;
+        if (!type || (typeof(type) !== 'string')) {
+            throw 'Invalid event type: ' + type;
         }
         if (!payload) {
-            throw "Event payload for " + type + " is undefined";
+            throw 'Event payload for ' + type + ' is undefined';
         }
 
         var event = {type: type, payload: payload};
@@ -103,7 +103,7 @@
             this.eventStore.storeEvent(aggregate.id, events[i].type, events[i].payload);
 
             if (this.eventBus) {
-                this.eventBus.publish(events[i].type, events[i].payload);
+                this.eventBus.publish(events[i]);
             }
         }
         aggregate.clearUnsavedEvents();
@@ -111,11 +111,11 @@
 
     AggregateRepository.prototype.add = function (aggregate) {
         if (!aggregate.id) {
-            throw "Aggregate does not have an id";
+            throw 'Aggregate does not have an id';
         }
 
         if (this.eventStore.exists(aggregate.id)) {
-            throw "Aggregate " + aggregate.id + " already exists";
+            throw 'Aggregate ' + aggregate.id + ' already exists';
         }
 
         this.storeAndPublishUnsavedEvents(aggregate);
@@ -123,7 +123,7 @@
 
     AggregateRepository.prototype.save = function (aggregate) {
         if (!this.eventStore.exists(aggregate.id)) {
-            throw "Aggregate " + aggregate.id + " does not exist";
+            throw 'Aggregate ' + aggregate.id + ' does not exist';
         }
 
         this.storeAndPublishUnsavedEvents(aggregate);
@@ -137,8 +137,8 @@
         return item;
     };
 
-    module.service('EventStore', EventStore);
-    module.service('EventBus', EventBus);
+    module.constant('EventStore', EventStore);
+    module.constant('EventBus', EventBus);
     module.constant('Aggregate', Aggregate);
     module.constant('AggregateRepositoryFactory', AggregateRepositoryFactory);
 

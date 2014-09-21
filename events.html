@@ -1,0 +1,20 @@
+<h1>Events for {{id}}</h1>
+
+<table border="1">
+
+    <thead>
+    <tr>
+        <th>Event</th>
+        <th>Payload</th>
+    </tr>
+
+    </thead>
+
+    <tbody>
+    <tr ng-repeat="e in events">
+        <td>{{e.type}}</td>
+        <td>{{e.payload | json}}</td>
+    </tr>
+    </tbody>
+
+</table>

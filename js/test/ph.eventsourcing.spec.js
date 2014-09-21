@@ -1,4 +1,4 @@
-describe("Event Sourcing", function () {
+describe('Event Sourcing', function () {
 
     function event(type, payload) {
         return {
@@ -49,43 +49,48 @@ describe("Event Sourcing", function () {
     }));
 
 
-    describe("Event Store", function () {
-        it("Should initially be empty", inject(function (EventStore) {
-            expect(EventStore.loadEvents('ID')).toEqual([]);
+    describe('Event Store', function () {
+        var eventStore;
+        beforeEach(inject(function(EventStore){
+            eventStore = new EventStore();
         }));
 
-        it("Should remember events", inject(function (EventStore) {
-            EventStore.storeEvent('ID', 'EventName', { sequence: 1});
+        it('Should initially be empty', inject(function () {
+            expect(eventStore.loadEvents('ID')).toEqual([]);
+        }));
 
-            expect(EventStore.loadEvents('ID')).toEqual([
+        it('Should remember events', inject(function () {
+            eventStore.storeEvent('ID', 'EventName', { sequence: 1});
+
+            expect(eventStore.loadEvents('ID')).toEqual([
                 event('EventName', {sequence: 1})
             ]);
 
-            EventStore.storeEvent('ID', 'EventName', { sequence: 2});
+            eventStore.storeEvent('ID', 'EventName', { sequence: 2});
 
-            expect(EventStore.loadEvents('ID')).toEqual([
+            expect(eventStore.loadEvents('ID')).toEqual([
                 event('EventName', {sequence: 1}),
                 event('EventName', {sequence: 2})
             ]);
         }));
 
-        it("Should separate events by aggregate ID", inject(function (EventStore) {
-            EventStore.storeEvent('ID1', 'A', {});
-            EventStore.storeEvent('ID2', 'A', {});
-            EventStore.storeEvent('ID1', 'B', {});
-            EventStore.storeEvent('ID2', 'C', {});
+        it('Should separate events by aggregate ID', inject(function () {
+            eventStore.storeEvent('ID1', 'A', {});
+            eventStore.storeEvent('ID2', 'A', {});
+            eventStore.storeEvent('ID1', 'B', {});
+            eventStore.storeEvent('ID2', 'C', {});
 
-            expect(EventStore.loadEvents('ID1')).toEqual(
+            expect(eventStore.loadEvents('ID1')).toEqual(
                 [ event('A', {}), event('B', {}) ]);
 
-            expect(EventStore.loadEvents('ID2')).toEqual(
+            expect(eventStore.loadEvents('ID2')).toEqual(
                 [ event('A', {}), event('C', {}) ]);
         }));
 
     });
 
-    describe("DummyAggregate", function () {
-        it("Should count events", function () {
+    describe('DummyAggregate', function () {
+        it('Should count events', function () {
             dummy.command1();
             dummy.command2();
             dummy.command2();
@@ -94,7 +99,7 @@ describe("Event Sourcing", function () {
             expect(dummy.event2Count).toBe(2);
         });
 
-        it("Should be independent", function () {
+        it('Should be independent', function () {
             var a = new Dummy('A'),
                 b = new Dummy('B');
 
@@ -103,16 +108,16 @@ describe("Event Sourcing", function () {
         });
     })
 
-    describe("Aggregate", function () {
-        it("Should handle event dispatch", inject(function () {
+    describe('Aggregate', function () {
+        it('Should handle event dispatch', inject(function () {
             dummy.applyEvent({type: 'Event1', payload: {}});
-            dummy.applyEvent({type: 'Event2', payload: "Payload"});
+            dummy.applyEvent({type: 'Event2', payload: 'Payload'});
 
             expect(Dummy.prototype.eventHandlers.Event1).toHaveBeenCalledWith({});
-            expect(Dummy.prototype.eventHandlers.Event2).toHaveBeenCalledWith("Payload");
+            expect(Dummy.prototype.eventHandlers.Event2).toHaveBeenCalledWith('Payload');
         }));
 
-        it("Should apply events", function () {
+        it('Should apply events', function () {
             dummy.command1();
             dummy.command1();
 
@@ -120,11 +125,11 @@ describe("Event Sourcing", function () {
             expect(Dummy.prototype.eventHandlers.Event2).not.toHaveBeenCalled();
         });
 
-        it("Should not initially have any unsaved events", function () {
+        it('Should not initially have any unsaved events', function () {
             expect(dummy.getUnsavedEvents()).toEqual([event('DummyCreated', 'ID')]);
         });
 
-        it("Should store applied events", function () {
+        it('Should store applied events', function () {
             dummy.command1();
             dummy.command2();
 
@@ -134,7 +139,7 @@ describe("Event Sourcing", function () {
             ]);
         });
 
-        it("Should initialize from events", function () {
+        it('Should initialize from events', function () {
             dummy = new Dummy();
             dummy.initialize([
                 event('DummyCreated', 'ID'),
@@ -147,16 +152,16 @@ describe("Event Sourcing", function () {
             expect(dummy.getUnsavedEvents()).toEqual([]);
         });
 
-        it("Should validate applied events", function () {
+        it('Should validate applied events', function () {
             expect(function () {
                 dummy.apply();
             }).toThrow();
             expect(function () {
-                dummy.apply("Type");
+                dummy.apply('Type');
             }).toThrow();
         });
 
-        it("Should clear unsaved events after save", function () {
+        it('Should clear unsaved events after save', function () {
             dummy.command1();
 
             expect(dummy.getUnsavedEvents()).not.toEqual([]);
@@ -167,53 +172,53 @@ describe("Event Sourcing", function () {
         });
     });
 
-    describe("AggregateRepository", function () {
+    describe('AggregateRepository', function () {
 
-        var DummyRepo, EventStore, EventBus;
+        var DummyRepo, eventStore, EventBus;
 
-        beforeEach(inject(function (_EventStore_, _EventBus_, AggregateRepositoryFactory) {
-            EventStore = _EventStore_;
+        beforeEach(inject(function (EventStore, AggregateRepositoryFactory) {
+            eventStore = new EventStore();
             EventBus = jasmine.createSpyObj('mockEventBus', ['publish']);
             DummyRepo = AggregateRepositoryFactory({
-                eventStore: EventStore,
+                eventStore: eventStore,
                 eventBus: EventBus,
                 factory: function () {
                     return new Dummy();
                 }
             });
 
-            spyOn(EventStore, "storeEvent").and.callThrough();
+            spyOn(eventStore, 'storeEvent').and.callThrough();
         }));
 
-        it("Should persist empty objects", function () {
+        it('Should persist empty objects', function () {
             DummyRepo.add(dummy);
 
             expect(dummy.getUnsavedEvents).toHaveBeenCalled();
-            expect(EventStore.storeEvent).toHaveBeenCalledWith(
+            expect(eventStore.storeEvent).toHaveBeenCalledWith(
                 'ID', 'DummyCreated', 'ID'
             );
 
             expect(dummy.getUnsavedEvents()).toEqual([]);
         });
 
-        it("Should persist new objects", function () {
+        it('Should persist new objects', function () {
             DummyRepo.add(dummy);
             expect(dummy.getUnsavedEvents).toHaveBeenCalled();
-            expect(EventStore.storeEvent.calls.count()).toBe(1);
+            expect(eventStore.storeEvent.calls.count()).toBe(1);
         });
 
-        it("Should load aggregates", function () {
+        it('Should load aggregates', function () {
             dummy.command1();
             dummy.command2();
 
             DummyRepo.add(dummy);
 
-            var copy = DummyRepo.load("ID");
+            var copy = DummyRepo.load('ID');
 
             expect(copy.event1Count).toEqual(dummy.event1Count);
         });
 
-        it("Should not allow aggregates without an ID", function () {
+        it('Should not allow aggregates without an ID', function () {
             var noId = new Dummy();
 
             expect(function () {
@@ -221,13 +226,13 @@ describe("Event Sourcing", function () {
             }).toThrow();
         });
 
-        it("Should not allow duplicate IDs", function () {
-            var one = new Dummy("ID1");
+        it('Should not allow duplicate IDs', function () {
+            var one = new Dummy('ID1');
             one.command1();
 
             DummyRepo.add(one);
 
-            var dup = new Dummy("ID1");
+            var dup = new Dummy('ID1');
 
             expect(function () {
                 DummyRepo.add(one)
@@ -237,20 +242,20 @@ describe("Event Sourcing", function () {
             }).toThrow();
         });
 
-        it("Should save aggregate events", function () {
+        it('Should save aggregate events', function () {
             DummyRepo.add(dummy);
 
-            var copy = DummyRepo.load("ID");
+            var copy = DummyRepo.load('ID');
             expect(copy.event1Count).toEqual(dummy.event1Count);
 
             copy.command1();
             DummyRepo.save(copy);
 
-            var copy2 = DummyRepo.load("ID");
+            var copy2 = DummyRepo.load('ID');
             expect(copy.event1Count).toEqual(copy2.event1Count);
         });
 
-        it("Should clear the aggregates unsaved events", function () {
+        it('Should clear the aggregates unsaved events', function () {
             DummyRepo.add(dummy);
 
             expect(dummy.getUnsavedEvents()).toEqual([]);
@@ -266,20 +271,20 @@ describe("Event Sourcing", function () {
             expect(dummy.getUnsavedEvents()).toEqual([]);
         });
 
-        it("Should publish events", function () {
-            var one = new Dummy("ID1");
+        it('Should publish events', function () {
+            var one = new Dummy('ID1');
             DummyRepo.add(one);
 
-            expect(EventBus.publish).toHaveBeenCalledWith('DummyCreated', 'ID1');
+            expect(EventBus.publish).toHaveBeenCalledWith({type: 'DummyCreated', payload: 'ID1'});
         });
     });
 
-    describe("Event Bus", function () {
+    describe('Event Bus', function () {
 
         var bus, handlers;
 
         beforeEach(inject(function (EventBus) {
-            bus = EventBus;
+            bus = new EventBus();
             handlers = {
                 one: function () {
                 },
@@ -287,11 +292,11 @@ describe("Event Sourcing", function () {
                 }
             };
 
-            spyOn(handlers, "one").and.callThrough();
-            spyOn(handlers, "two").and.callThrough();
+            spyOn(handlers, 'one').and.callThrough();
+            spyOn(handlers, 'two').and.callThrough();
         }));
 
-        it("Should publish events to listeners", function () {
+        it('Should publish events to listeners', function () {
 
             bus.subscribe('EventOne', handlers.one);
             bus.subscribe('EventTwo', handlers.two);
@@ -310,7 +315,7 @@ describe("Event Sourcing", function () {
             expect(handlers.two).toHaveBeenCalledWith(2);
         });
 
-        it("Should allow multiple subscribers", function () {
+        it('Should allow multiple subscribers', function () {
             bus.subscribe('EventOne', handlers.one);
             bus.subscribe('EventOne', handlers.two);
 
