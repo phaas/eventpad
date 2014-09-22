@@ -27,12 +27,22 @@
     <table class="properties">
         <tr>
             <th>Insert Position:</th>
-            <td><input type="text" ng-model="position"/>
+            <td><input type="text" ng-model="position" placeholder="position"/>
                 <small>leave blank to insert at the end</small>
             </td>
         </tr>
         <tr>
-            <th>Insert:</th>
+            <th>Insert Line:</th>
+            <td>
+                <form ng-submit="append(appendLine + '\n'); appendLine = '';">
+                    <input ng-model="appendLine" type="text" placeholder="..."/>
+                    <small>press enter to insert</small>
+                </form>
+            </td>
+
+        </tr>
+        <tr>
+            <th>Insert Text:</th>
             <td><textarea ng-model="line" rows="3" cols="60"></textarea>
 
                 <div>

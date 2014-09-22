@@ -94,3 +94,8 @@ table.properties small {
     font-weight: bold;
     text-decoration: underline;
 }
+
+input[type=text], textarea, button {
+    padding: 3px;
+    margin: 2px;
+}

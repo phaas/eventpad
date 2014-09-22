@@ -89,6 +89,7 @@ describe('Domain', function () {
                 event('TextDeleted', new Events.TextDeleted('ID', 0, 7, '0123489'))
             ]);
         });
+
         it('Should delete text 2', function () {
             editor.append('012345678901234567890123456789');
             editor.clearUnsavedEvents();
@@ -101,7 +102,6 @@ describe('Domain', function () {
         });
 
         it('Should verify the position of deleted text', function () {
-
             var scenarios = [
                 // position, length, error
                 [0, 1, "Can not delete 1 characters at position 0, content is only 0 characters"],

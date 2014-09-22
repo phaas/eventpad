@@ -46,7 +46,7 @@
         $scope.id = $routeParams.id;
         $scope.editor = App.editorContent.get($scope.id);
         $scope.append = function (text, position) {
-            App.gateway.append($scope.id, text, +position);
+            App.gateway.append($scope.id, text, position && +position);
         };
 
         $scope.deleteText = function (position, length) {
