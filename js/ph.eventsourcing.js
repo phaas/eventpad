@@ -46,11 +46,16 @@
     };
 
     EventStore.prototype.exists = function (id) {
-        return this.store[id] && this.store[id].length;
+        return this.store[id] && this.store[id].length > 0;
+    };
+
+    EventStore.prototype.deleteEvents = function(id) {
+        this.store[id] = [];
     };
 
     var Aggregate = function () {
         this.unsavedEvents = [];
+        this.deleted = false;
     };
 
     Aggregate.prototype.applyEvent = function (event) {
@@ -76,14 +81,22 @@
         return this.unsavedEvents;
     };
 
-    Aggregate.prototype.clearUnsavedEvents = function() {
+    Aggregate.prototype.clearUnsavedEvents = function () {
         this.unsavedEvents = [];
-    }
+    };
 
     Aggregate.prototype.initialize = function (events) {
         for (var c = 0; c < events.length; c++) {
             this.applyEvent(events[c]);
         }
+    };
+
+    Aggregate.prototype.markDeleted = function () {
+        this.deleted = true;
+    };
+
+    Aggregate.prototype.isDeleted = function () {
+        return this.deleted;
     };
 
     var AggregateRepositoryFactory = function (config) {
@@ -107,6 +120,10 @@
             }
         }
         aggregate.clearUnsavedEvents();
+
+        if (aggregate.isDeleted()) {
+            this.eventStore.deleteEvents(aggregate.id);
+        }
     }
 
     AggregateRepository.prototype.add = function (aggregate) {

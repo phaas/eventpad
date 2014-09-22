@@ -18,6 +18,9 @@
             this.position = position;
             this.length = length;
             this.text = text;
+        },
+        EditorDeleted: function (id) {
+            this.id = id;
         }
     };
     module.constant('Events', Events);
@@ -80,6 +83,11 @@
             this.apply('TextDeleted', new Events.TextDeleted(this.id, position, length, cut));
         };
 
+        Editor.prototype.delete = function () {
+            this.apply('EditorDeleted', new Events.EditorDeleted(this.id));
+            this.markDeleted();
+        };
+
         return {
             $get: function () {
                 return Editor;
@@ -108,6 +116,13 @@
                     return 1;
                 }
             })
+        });
+        EventBus.subscribe('EditorDeleted', function (event) {
+            for (var i = data.length - 1; i >= 0; i--) {
+                if (data[i].id === event.id) {
+                    data.splice(i,1);
+                }
+            }
         });
 
     };
@@ -154,6 +169,9 @@
             view.content = prefix + suffix;
             view.contentLength -= event.length;
         });
+        EventBus.subscribe('EditorDeleted', function (event) {
+            delete data[event.id];
+        });
     };
 
     EditorContentView.prototype.get = function (id) {
@@ -179,7 +197,7 @@
     /*
      * Generate command invocation functions for all aggregate commands.
      */
-    angular.forEach(['append', 'deleteText'], function (cmd) {
+    angular.forEach(['append', 'deleteText', 'delete'], function (cmd) {
         EditorCommandGateway.prototype[cmd] = function (id /*, args */) {
             var editor = this.repository.load(id);
             var result = editor[cmd].apply(editor, Array.prototype.slice.call(arguments, 1, arguments.length));

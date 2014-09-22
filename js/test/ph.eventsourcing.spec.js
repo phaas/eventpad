@@ -40,6 +40,10 @@ describe('Event Sourcing', function () {
         Dummy.prototype.command2 = function () {
             this.apply('Event2', {});
         };
+        Dummy.prototype.delete = function () {
+            this.apply('DummyDeleted', {});
+            this.markDeleted();
+        };
 
         dummy = new Dummy('ID');
         spyOn(dummy.eventHandlers, 'Event1').and.callThrough();
@@ -51,7 +55,7 @@ describe('Event Sourcing', function () {
 
     describe('Event Store', function () {
         var eventStore;
-        beforeEach(inject(function(EventStore){
+        beforeEach(inject(function (EventStore) {
             eventStore = new EventStore();
         }));
 
@@ -86,6 +90,16 @@ describe('Event Sourcing', function () {
             expect(eventStore.loadEvents('ID2')).toEqual(
                 [ event('A', {}), event('C', {}) ]);
         }));
+
+        it('Should delete events', function () {
+            eventStore.storeEvent('ID1', 'A', {});
+
+            expect(eventStore.exists('ID1')).toBe(true);
+
+            eventStore.deleteEvents('ID1');
+
+            expect(eventStore.exists('ID1')).toBe(false);
+        });
 
     });
 
@@ -170,6 +184,17 @@ describe('Event Sourcing', function () {
 
             expect(dummy.getUnsavedEvents()).toEqual([]);
         });
+
+        it('Should record deletion', function () {
+            dummy.clearUnsavedEvents();
+
+            expect(dummy.isDeleted()).toBe(false);
+
+            dummy.delete();
+
+            expect(dummy.getUnsavedEvents()).toEqual([event('DummyDeleted', {})]);
+            expect(dummy.isDeleted()).toBe(true);
+        })
     });
 
     describe('AggregateRepository', function () {
@@ -277,6 +302,17 @@ describe('Event Sourcing', function () {
 
             expect(EventBus.publish).toHaveBeenCalledWith({type: 'DummyCreated', payload: 'ID1'});
         });
+
+        it('Should delete aggregates', function () {
+            DummyRepo.add(new Dummy('ID1'));
+
+            var tx = DummyRepo.load('ID1');
+            tx.delete();
+
+            DummyRepo.save(tx);
+
+            expect(eventStore.exists('ID1')).toBe(false);
+        });
     });
 
     describe('Event Bus', function () {
@@ -324,7 +360,5 @@ describe('Event Sourcing', function () {
             expect(handlers.one).toHaveBeenCalledWith(1);
             expect(handlers.two).toHaveBeenCalledWith(1);
         });
-
     });
-})
-;
+});

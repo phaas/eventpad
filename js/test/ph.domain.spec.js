@@ -137,6 +137,17 @@ describe('Domain', function () {
                 editor.deleteText(0, 1);
             }).toThrow("Can not delete 1 characters at position 0, content is only 0 characters")
         });
+
+        it('Should delete itslef', function () {
+            editor.clearUnsavedEvents();
+
+            editor.delete();
+
+            expect(editor.getUnsavedEvents()).toEqual([
+                event('EditorDeleted', new Events.EditorDeleted('ID'))
+            ]);
+            expect(editor.isDeleted()).toBe(true);
+        })
     });
 
     describe('Id Generator', function () {
@@ -161,30 +172,46 @@ describe('Domain', function () {
     });
 
     describe('Editor List View', function () {
-        it('Should have a list of Editors', inject(function (App) {
-            expect(App.editorList.list()).toEqual([]);
 
-            var a = new App.Editor('ID1', 'file.txt');
-            App.repository.add(a);
+        var eventBus, view, Events;
 
-            expect(App.editorList.list()).toEqual([
-                {id: 'ID1', fileName: 'file.txt'}
-            ]);
+        beforeEach(inject(function (EditorListView, EventBus, _Events_) {
+            Events = _Events_;
+            eventBus = new EventBus();
+            view = new EditorListView(eventBus);
         }));
 
-        it('Should sort items alphabetically by fileName', inject(function (App, Editor) {
-            App.repository.add(new App.Editor('ID1', 'zzz.txt'));
-            App.repository.add(new App.Editor('ID3', 'B.txt'));
-            App.repository.add(new App.Editor('ID2', 'aaa.txt'));
-            App.repository.add(new App.Editor('ID4', 'C.txt'));
 
-            expect(App.editorList.list()).toEqual([
+        it('Should have a list of Editors', function () {
+            expect(view.list()).toEqual([]);
+
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID1', 'file.txt')));
+
+            expect(view.list()).toEqual([
+                {id: 'ID1', fileName: 'file.txt'}
+            ]);
+        });
+
+        it('Should sort items alphabetically by fileName', function () {
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID1', 'zzz.txt')));
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID3', 'B.txt')));
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID2', 'aaa.txt')));
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID4', 'C.txt')));
+
+            expect(view.list()).toEqual([
                 {id: 'ID2', fileName: 'aaa.txt'},
                 {id: 'ID3', fileName: 'B.txt'},
                 {id: 'ID4', fileName: 'C.txt'},
                 {id: 'ID1', fileName: 'zzz.txt'}
             ]);
-        }));
+        });
+
+        it('Should delete the view', function () {
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID', 'fileName')));
+            eventBus.publish(event('EditorDeleted', new Events.EditorDeleted('ID')));
+
+            expect(view.list()).toEqual([]);
+        });
     });
 
     describe('EditorCommandGateway', function () {
@@ -203,7 +230,7 @@ describe('Domain', function () {
             expect(repository.add).toHaveBeenCalled();
         });
 
-        it('Should handle append commands', function () {
+        it('Should handle common commands', function () {
             var dummy = jasmine.createSpyObj('Editor', ['append']);
 
             repository.load.and.returnValue(dummy);
@@ -215,7 +242,7 @@ describe('Domain', function () {
             expect(repository.save).toHaveBeenCalledWith(dummy);
         });
 
-        it('Shouold handle delete commands', function () {
+        it('Should handle delete text commands', function () {
             var dummy = jasmine.createSpyObj('Editor', ['deleteText']);
 
             repository.load.and.returnValue(dummy);
@@ -225,7 +252,19 @@ describe('Domain', function () {
             expect(repository.load).toHaveBeenCalledWith('ID');
             expect(dummy.deleteText).toHaveBeenCalledWith(4, 2);
             expect(repository.save).toHaveBeenCalledWith(dummy);
-        })
+        });
+
+        it('Should delete the editor', function () {
+            var dummy = jasmine.createSpyObj('Editor', ['delete']);
+
+            repository.load.and.returnValue(dummy);
+
+            gateway.delete('ID');
+
+            expect(repository.load).toHaveBeenCalledWith('ID');
+            expect(dummy.delete).toHaveBeenCalledWith();
+            expect(repository.save).toHaveBeenCalledWith(dummy);
+        });
     });
 
 
@@ -316,6 +355,13 @@ describe('Domain', function () {
                 content: '',
                 contentLength: 0
             });
+        });
+
+        it('Should delete the view', function () {
+            eventBus.publish(event('EditorCreated', new Events.EditorCreated('ID', 'fileName')));
+            eventBus.publish(event('EditorDeleted', new Events.EditorDeleted('ID')));
+
+            expect(view.get('ID')).toBeUndefined();
         });
     });
 });

@@ -99,3 +99,8 @@ input[type=text], textarea, button {
     padding: 3px;
     margin: 2px;
 }
+
+button.danger {
+    color: #C0480A;
+    font-weight: bold;
+}

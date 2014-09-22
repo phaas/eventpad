@@ -21,6 +21,8 @@
             controller: 'EventCtrl'
         });
 
+        $routeProvider.otherwise('/list');
+
         $provide.decorator('$log', ['$delegate', function ($delegate) {
             var fn = $delegate.error;
 
@@ -42,11 +44,17 @@
     });
 
 
-    module.controller('EditorCtrl', ['$scope', 'App', '$routeParams', function ($scope, App, $routeParams) {
+    module.controller('EditorCtrl', ['$scope', 'App', '$routeParams', '$location', function ($scope, App, $routeParams, $location) {
         $scope.id = $routeParams.id;
         $scope.editor = App.editorContent.get($scope.id);
+
         $scope.append = function (text, position) {
             App.gateway.append($scope.id, text, position && +position);
+        };
+
+        $scope.delete = function () {
+            App.gateway.delete($scope.id);
+            $location.url('/list')
         };
 
         $scope.deleteText = function (position, length) {
