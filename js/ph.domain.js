@@ -65,10 +65,10 @@
         };
 
         Editor.prototype.deleteText = function (position, length) {
-            if (position < 0) {
+            if (position < 0 || position == null || isNaN(position)) {
                 throw "Position must be >= 0";
             }
-            if (length <= 0) {
+            if (length <= 0 || isNaN(length)) {
                 throw "Length must be > 0";
             }
             if (position + length > this.contentLength) {

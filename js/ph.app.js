@@ -4,7 +4,7 @@
     var module = angular.module('ph.app', ['ph.eventSourcing', 'ph.domain', 'ngRoute']);
 
 
-    module.config([ '$routeProvider', function ($routeProvider) {
+    module.config([ '$routeProvider', '$provide', function ($routeProvider, $provide) {
 
         $routeProvider.when('/list', {
             templateUrl: 'editorList.html',
@@ -21,6 +21,15 @@
             controller: 'EventCtrl'
         });
 
+        $provide.decorator('$log', ['$delegate', function ($delegate) {
+            var fn = $delegate.error;
+
+            $delegate.error = function (error) {
+                alert(error);
+                fn.apply($delegate, arguments);
+            }
+            return $delegate;
+        }]);
     }]);
 
     module.run(function (App) {
@@ -72,6 +81,5 @@
             return App.editorList.list();
         };
     }]);
-
 
 })(window, window.angular);

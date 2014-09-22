@@ -101,17 +101,28 @@ describe('Domain', function () {
         });
 
         it('Should verify the position of deleted text', function () {
-            expect(function () {
-                editor.deleteText(0, 1);
-            }).toThrow("Can not delete 1 characters at position 0, content is only 0 characters");
 
-            expect(function () {
-                editor.deleteText(-1, 0);
-            }).toThrow("Position must be >= 0");
+            var scenarios = [
+                // position, length, error
+                [0, 1, "Can not delete 1 characters at position 0, content is only 0 characters"],
+                [-1, 0, "Position must be >= 0"],
+                [null, 0, "Position must be >= 0"],
+                [undefined, 0, "Position must be >= 0"],
+                [NaN, 0, "Position must be >= 0"],
+                [0, 0, "Length must be > 0"],
+                [0, null, "Length must be > 0"],
+                [0, undefined, "Length must be > 0"],
+                [0, NaN, "Length must be > 0"]
+            ];
 
-            expect(function () {
-                editor.deleteText(0, 0);
-            }).toThrow("Length must be > 0");
+            for (var i = 0; i < scenarios.length; i++) {
+                var position = scenarios[i][0],
+                    length = scenarios[i][1],
+                    expected = scenarios[i][2];
+                expect(function () {
+                    editor.deleteText(position, length);
+                }).toThrow(expected);
+            }
 
             editor.append("0123456789");
             editor.deleteText(0, 8);
